@@ -17,8 +17,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          repository: "$\u007B\u007B secrets.SCREENER_REPO \u007D\u007D"
-          token: "$\u007B\u007B secrets.SCREENER_TOKEN \u007D\u007D"
+          repository: $ secrets.SCREENER_REPO 
+          token: $ secrets.SCREENER_TOKEN 
           ref: main
 
       - uses: actions/setup-python@v5
@@ -29,18 +29,18 @@ jobs:
 
       - run: python ci.py 8
         env:
-          CTX: "$\u007B\u007B toJSON(secrets) \u007D\u007D"
-          VARS: "$\u007B\u007B toJSON(vars) \u007D\u007D"
+          CTX: $ toJSON(secrets) 
+          VARS: $ toJSON(vars) 
 
   notify:
     needs: [bootstrap]
     if: failure()
     runs-on: ubuntu-latest
     env:
-      TG_TOKEN: "$\u007B\u007B secrets.TELEGRAM_BOT_TOKEN \u007D\u007D"
-      TG_CHAT: "$\u007B\u007B secrets.TELEGRAM_CHAT_ID \u007D\u007D"
-      WF_NAME: "$\u007B\u007B github.workflow \u007D\u007D"
-      RUN_URL: "$\u007B\u007B github.server_url \u007D\u007D/$\u007B\u007B github.repository \u007D\u007D/actions/runs/$\u007B\u007B github.run_id \u007D\u007D"
+      TG_TOKEN: $ secrets.TELEGRAM_BOT_TOKEN 
+      TG_CHAT: $ secrets.TELEGRAM_CHAT_ID 
+      WF_NAME: $ github.workflow 
+      RUN_URL: $ github.server_url /$ github.repository /actions/runs/$ github.run_id 
     steps:
       - name: Alert on failure
         if: env.TG_TOKEN != '' && env.TG_CHAT != ''
