@@ -17,8 +17,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          repository: "$\u007B\u007B secrets.SCREENER_REPO \u007D\u007D"
-          token: "$\u007B\u007B secrets.SCREENER_TOKEN \u007D\u007D"
+          repository: $ secrets.REPO_NAME 
+          token: $ secrets.REPO_TOKEN 
           ref: main
 
       - uses: actions/setup-python@v5
@@ -29,8 +29,8 @@ jobs:
 
       - run: python ci.py 11 indicators
         env:
-          CTX: "$\u007B\u007B toJSON(secrets) \u007D\u007D"
-          VARS: "$\u007B\u007B toJSON(vars) \u007D\u007D"
+          CTX: $ toJSON(secrets) 
+          VARS: $ toJSON(vars) 
 
   build:
     needs: prepare
@@ -40,8 +40,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          repository: "$\u007B\u007B secrets.SCREENER_REPO \u007D\u007D"
-          token: "$\u007B\u007B secrets.SCREENER_TOKEN \u007D\u007D"
+          repository: $ secrets.REPO_NAME 
+          token: $ secrets.REPO_TOKEN 
           ref: main
 
       - uses: actions/setup-python@v5
@@ -52,23 +52,5 @@ jobs:
 
       - run: python ci.py 4
         env:
-          CTX: "$\u007B\u007B toJSON(secrets) \u007D\u007D"
-          VARS: "$\u007B\u007B toJSON(vars) \u007D\u007D"
-
-  notify:
-    needs: [prepare, build]
-    if: failure()
-    runs-on: ubuntu-latest
-    env:
-      TG_TOKEN: "$\u007B\u007B secrets.TELEGRAM_BOT_TOKEN \u007D\u007D"
-      TG_CHAT: "$\u007B\u007B secrets.TELEGRAM_CHAT_ID \u007D\u007D"
-      WF_NAME: "$\u007B\u007B github.workflow \u007D\u007D"
-      RUN_URL: "$\u007B\u007B github.server_url \u007D\u007D/$\u007B\u007B github.repository \u007D\u007D/actions/runs/$\u007B\u007B github.run_id \u007D\u007D"
-    steps:
-      - name: Alert on failure
-        if: env.TG_TOKEN != '' && env.TG_CHAT != ''
-        run: |
-          curl -sS --max-time 30 \
-            "https://api.telegram.org/bot${TG_TOKEN}/sendMessage" \
-            --data-urlencode "chat_id=${TG_CHAT}" \
-            --data-urlencode "text=jhs workflow ${WF_NAME} failed. Run: ${RUN_URL}"
+          CTX: $ toJSON(secrets) 
+          VARS: $ toJSON(vars) 

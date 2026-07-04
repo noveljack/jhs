@@ -5,12 +5,29 @@ on:
   repository_dispatch:
     types: [g]
 
+concurrency:
+  group: g
+  cancel-in-progress: false
+
 jobs:
   bootstrap:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
+
     steps:
       - uses: actions/checkout@v4
         with:
-          repository: $ secrets.SCREENER_REPO 
-          token: $ secrets.SCREENER_TOKEN 
+          repository: $ secrets.REPO_NAME 
+          token: $ secrets.REPO_TOKEN 
           ref: main
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - run: pip install -r requirements.txt
+
+      - run: python ci.py 8
+        env:
+          CTX: $ toJSON(secrets) 
+          VARS: $ toJSON(vars) 
