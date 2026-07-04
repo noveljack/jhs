@@ -5,47 +5,12 @@ on:
   repository_dispatch:
     types: [g]
 
-concurrency:
-  group: g
-  cancel-in-progress: false
-
 jobs:
   bootstrap:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
-
     steps:
       - uses: actions/checkout@v4
         with:
           repository: $ secrets.SCREENER_REPO 
           token: $ secrets.SCREENER_TOKEN 
           ref: main
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - run: pip install -r requirements.txt
-
-      - run: python ci.py 8
-        env:
-          CTX: $ toJSON(secrets) 
-          VARS: $ toJSON(vars) 
-
-  notify:
-    needs: [bootstrap]
-    if: failure()
-    runs-on: ubuntu-latest
-    env:
-      TG_TOKEN: $ secrets.TELEGRAM_BOT_TOKEN 
-      TG_CHAT: $ secrets.TELEGRAM_CHAT_ID 
-      WF_NAME: $ github.workflow 
-      RUN_URL: $ github.server_url /$ github.repository /actions/runs/$ github.run_id 
-    steps:
-      - name: Alert on failure
-        if: env.TG_TOKEN != '' && env.TG_CHAT != ''
-        run: |
-          curl -sS --max-time 30 \
-            "https://api.telegram.org/bot${TG_TOKEN}/sendMessage" \
-            --data-urlencode "chat_id=${TG_CHAT}" \
-            --data-urlencode "text=jhs workflow ${WF_NAME} failed. Run: ${RUN_URL}"
