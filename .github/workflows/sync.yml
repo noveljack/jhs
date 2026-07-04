@@ -1,0 +1,48 @@
+name: sync
+
+# Monthly dimension refresh (ci.py mode 6).
+#
+# Refreshes slow-moving data: NSE holiday calendar, sector classification,
+# global index snapshot (Yahoo), and NSE shareholding. Rebuilds the Astro
+# dashboard and commits updated dims + dist.
+#
+# Runs on the 2nd of every month at 08:00 UTC (13:30 IST).
+# Also triggerable manually.
+
+on:
+  schedule:
+    - cron: "0 8 2 * *"
+  workflow_dispatch:
+  repository_dispatch:
+    types: [sync]
+
+concurrency:
+  group: sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: noveljack/screener
+          token: $ secrets.SCREENER_TOKEN 
+          ref: main
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - run: pip install -r requirements.txt
+
+      - run: python ci.py 6
+        env:
+          CTX: $ toJSON(secrets) 
+          VARS: $ toJSON(vars) 

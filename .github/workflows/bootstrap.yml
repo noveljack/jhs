@@ -1,0 +1,39 @@
+name: bootstrap
+
+# Bootstrap dimension tables (ci.py mode 8).
+#
+# Builds the symbol master, sector classification, and holiday calendar from
+# scratch. Run ONCE on first setup before any daily or backfill job.
+# Also useful to recover a corrupted dim dataset.
+
+on:
+  workflow_dispatch:
+  repository_dispatch:
+    types: [bootstrap]
+
+concurrency:
+  group: bootstrap
+  cancel-in-progress: false
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: noveljack/screener
+          token: $ secrets.SCREENER_TOKEN 
+          ref: main
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - run: pip install -r requirements.txt
+
+      - run: python ci.py 8
+        env:
+          CTX: $ toJSON(secrets) 
+          VARS: $ toJSON(vars) 

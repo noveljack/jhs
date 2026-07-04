@@ -1,0 +1,58 @@
+name: build
+
+# Build-only dashboard rebuild (ci.py mode 12).
+#
+# Rebuilds the dashboard + screener + per-symbol charts from data ALREADY on
+# Drive, WITHOUT fetching today's bhavcopy or any other network ingest.
+# Use this to publish code / template changes without waiting for the next
+# daily EOD run.
+#
+# as_of is stamped with the LATEST data date already present in Drive, so the
+# dashboard shows a "previous session" flag until the daily run (mode 1) lands
+# today's bhavcopy. No Drive push, no day-done marker.
+
+on:
+  workflow_dispatch:
+  repository_dispatch:
+    types: [build]
+
+concurrency:
+  group: build
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: noveljack/screener
+          token: $ secrets.SCREENER_TOKEN 
+          ref: main
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - uses: actions/cache/restore@v4
+        with:
+          path: ~/.cache/huggingface
+          key: hf-kronos-NeoQuasar-Kronos-small-v2
+
+      - name: Install Python dependencies
+        run: |
+          pip install -r requirements.txt -r requirements-halal.txt
+          pip install \
+            --extra-index-url https://download.pytorch.org/whl/cpu \
+            -r requirements-ml.txt
+
+      - run: python ci.py 12
+        env:
+          CTX: $ toJSON(secrets) 
+          VARS: $ toJSON(vars) 

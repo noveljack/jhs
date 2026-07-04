@@ -1,0 +1,54 @@
+name: indicator
+
+# Full indicator rebuild (ci.py mode 4, SINGLE job -- not sharded).
+#
+# Indicators are written by a single-writer streaming recompute: each
+# (timeframe, year) partition is emitted exactly once, so there is nothing
+# to shard. Pulls eod (+ index), rebuilds every symbol's indicator set
+# (compute_indicators.run_all) and the index indicators (run_indices), then
+# pushes the whole indicators tree to Drive.
+#
+# Includes requirements-ml.txt + Kronos cache so build_screener can compute
+# forward-strength scores even when run standalone.
+
+on:
+  workflow_dispatch:
+  repository_dispatch:
+    types: [indicator]
+
+concurrency:
+  group: indicator
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: noveljack/screener
+          token: $ secrets.SCREENER_TOKEN 
+          ref: main
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - uses: actions/cache/restore@v4
+        with:
+          path: ~/.cache/huggingface
+          key: hf-kronos-NeoQuasar-Kronos-small-v2
+
+      - name: Install Python dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install \
+            --extra-index-url https://download.pytorch.org/whl/cpu \
+            -r requirements-ml.txt
+
+      - run: python ci.py 4
+        env:
+          CTX: $ toJSON(secrets) 
+          VARS: $ toJSON(vars) 

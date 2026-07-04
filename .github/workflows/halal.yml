@@ -1,0 +1,45 @@
+name: halal
+
+# Monthly halal compliance scan (ci.py mode 9).
+#
+# Scrapes Musaffa for every NSE equity + ETF and sticky-merges the result
+# into data/dim/halal_list.csv: only definitive HALAL / NOT HALAL / DOUBTFUL
+# results overwrite the prior value so a transient Musaffa/login hiccup never
+# downgrades a known-good status.
+#
+# Requires MUSAFFA_EMAIL + MUSAFFA_PASSWORD in CTX (repo secrets).
+# Runs on the 3rd of every month at 09:00 UTC (14:30 IST).
+
+on:
+  schedule:
+    - cron: "0 9 3 * *"
+  workflow_dispatch:
+  repository_dispatch:
+    types: [halal]
+
+concurrency:
+  group: halal
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: noveljack/screener
+          token: $ secrets.SCREENER_TOKEN 
+          ref: main
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - run: pip install -r requirements.txt -r requirements-halal.txt
+
+      - run: python ci.py 9
+        env:
+          CTX: $ toJSON(secrets) 
+          VARS: $ toJSON(vars) 

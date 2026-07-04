@@ -1,0 +1,92 @@
+name: backfill-resume
+
+# Resume an interrupted EOD backfill (ci.py mode 10, sharded over 16 parallel
+# jobs). Only fetches symbols that are missing or behind, so a re-run finishes
+# an interrupted full backfill (mode 2) cheaply without re-downloading
+# everything.
+#
+# Pipeline: prepare -> build (16 shards) -> reduce (mode 16)
+
+on:
+  workflow_dispatch:
+  repository_dispatch:
+    types: [backfill-resume]
+
+concurrency:
+  group: backfill-resume
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: noveljack/screener
+          token: $ secrets.SCREENER_TOKEN 
+          ref: main
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - run: pip install -r requirements.txt
+
+      - run: python ci.py 11 eod
+        env:
+          CTX: $ toJSON(secrets) 
+          VARS: $ toJSON(vars) 
+
+  build:
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+
+    strategy:
+      max-parallel: 16
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: noveljack/screener
+          token: $ secrets.SCREENER_TOKEN 
+          ref: main
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - run: pip install -r requirements.txt
+
+      - run: python ci.py 10 $ matrix.shard 
+        env:
+          CTX: $ toJSON(secrets) 
+          VARS: $ toJSON(vars) 
+
+  reduce:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: noveljack/screener
+          token: $ secrets.SCREENER_TOKEN 
+          ref: main
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - run: pip install -r requirements.txt
+
+      - run: python ci.py 16
+        env:
+          CTX: $ toJSON(secrets) 
+          VARS: $ toJSON(vars) 

@@ -1,0 +1,98 @@
+name: backfill
+
+# Historical EOD backfill (ci.py mode 2, sharded over 16 parallel jobs).
+#
+# Pipeline:
+#   prepare  ->  build (16 shards in parallel)  ->  reduce
+#
+#   prepare : mode 11 "eod"  -- dedupes legacy dirs, ensures the eod subdir
+#             exists exactly once on Drive so the shards never race-create it.
+#   build   : mode 2 <shard> -- each shard fetches its slice of the universe.
+#   reduce  : mode 16        -- merges eod/_parts/shard*.parquet into yearly
+#             files and purges eod/_parts from Drive.
+#
+# Trigger manually (workflow_dispatch) or via repository_dispatch.
+
+on:
+  workflow_dispatch:
+  repository_dispatch:
+    types: [backfill]
+
+concurrency:
+  group: backfill
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: noveljack/screener
+          token: $ secrets.SCREENER_TOKEN 
+          ref: main
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - run: pip install -r requirements.txt
+
+      - run: python ci.py 11 eod
+        env:
+          CTX: $ toJSON(secrets) 
+          VARS: $ toJSON(vars) 
+
+  build:
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+
+    strategy:
+      max-parallel: 16
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: noveljack/screener
+          token: $ secrets.SCREENER_TOKEN 
+          ref: main
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - run: pip install -r requirements.txt
+
+      - run: python ci.py 2 $ matrix.shard 
+        env:
+          CTX: $ toJSON(secrets) 
+          VARS: $ toJSON(vars) 
+
+  reduce:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: noveljack/screener
+          token: $ secrets.SCREENER_TOKEN 
+          ref: main
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - run: pip install -r requirements.txt
+
+      - run: python ci.py 16
+        env:
+          CTX: $ toJSON(secrets) 
+          VARS: $ toJSON(vars) 
