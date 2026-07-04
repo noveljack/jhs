@@ -1,18 +1,20 @@
-name: build
+name: h
 
 on:
+  schedule:
+    - cron: "0 9 3 * *"
   workflow_dispatch:
   repository_dispatch:
-    types: [build]
+    types: [h]
 
 concurrency:
-  group: build
+  group: h
   cancel-in-progress: false
 
 jobs:
-  build:
+  halal-scan:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 180
 
     steps:
       - uses: actions/checkout@v4
@@ -25,13 +27,9 @@ jobs:
         with:
           python-version: "3.11"
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20"
+      - run: pip install -r requirements.txt -r requirements-halal.txt
 
-      - run: pip install -r requirements.txt
-
-      - run: python ci.py 12
+      - run: python ci.py 9
         env:
           CTX: "$\u007B\u007B toJSON(secrets) \u007D\u007D"
           VARS: "$\u007B\u007B toJSON(vars) \u007D\u007D"

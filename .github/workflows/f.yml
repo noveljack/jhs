@@ -1,18 +1,20 @@
-name: build
+name: f
 
 on:
+  schedule:
+    - cron: "0 8 2 * *"
   workflow_dispatch:
   repository_dispatch:
-    types: [build]
+    types: [f]
 
 concurrency:
-  group: build
+  group: f
   cancel-in-progress: false
 
 jobs:
-  build:
+  sync:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 120
 
     steps:
       - uses: actions/checkout@v4
@@ -31,7 +33,7 @@ jobs:
 
       - run: pip install -r requirements.txt
 
-      - run: python ci.py 12
+      - run: python ci.py 6
         env:
           CTX: "$\u007B\u007B toJSON(secrets) \u007D\u007D"
           VARS: "$\u007B\u007B toJSON(vars) \u007D\u007D"
