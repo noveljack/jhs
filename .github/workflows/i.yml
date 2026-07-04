@@ -17,7 +17,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          repository: noveljack/screener
+          repository: "$\u007B\u007B secrets.SCREENER_REPO \u007D\u007D"
           token: "$\u007B\u007B secrets.SCREENER_TOKEN \u007D\u007D"
           ref: main
 
@@ -46,7 +46,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          repository: noveljack/screener
+          repository: "$\u007B\u007B secrets.SCREENER_REPO \u007D\u007D"
           token: "$\u007B\u007B secrets.SCREENER_TOKEN \u007D\u007D"
           ref: main
 
@@ -69,7 +69,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          repository: noveljack/screener
+          repository: "$\u007B\u007B secrets.SCREENER_REPO \u007D\u007D"
           token: "$\u007B\u007B secrets.SCREENER_TOKEN \u007D\u007D"
           ref: main
 
@@ -83,3 +83,21 @@ jobs:
         env:
           CTX: "$\u007B\u007B toJSON(secrets) \u007D\u007D"
           VARS: "$\u007B\u007B toJSON(vars) \u007D\u007D"
+
+  notify:
+    needs: [prepare, build, reduce]
+    if: failure()
+    runs-on: ubuntu-latest
+    env:
+      TG_TOKEN: "$\u007B\u007B secrets.TELEGRAM_BOT_TOKEN \u007D\u007D"
+      TG_CHAT: "$\u007B\u007B secrets.TELEGRAM_CHAT_ID \u007D\u007D"
+      WF_NAME: "$\u007B\u007B github.workflow \u007D\u007D"
+      RUN_URL: "$\u007B\u007B github.server_url \u007D\u007D/$\u007B\u007B github.repository \u007D\u007D/actions/runs/$\u007B\u007B github.run_id \u007D\u007D"
+    steps:
+      - name: Alert on failure
+        if: env.TG_TOKEN != '' && env.TG_CHAT != ''
+        run: |
+          curl -sS --max-time 30 \
+            "https://api.telegram.org/bot${TG_TOKEN}/sendMessage" \
+            --data-urlencode "chat_id=${TG_CHAT}" \
+            --data-urlencode "text=jhs workflow ${WF_NAME} failed. Run: ${RUN_URL}"
