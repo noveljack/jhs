@@ -15,20 +15,23 @@ jobs:
     timeout-minutes: 20
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
-          repository: $ secrets.REPO_NAME 
-          token: $ secrets.REPO_TOKEN 
+          repository: ${{ secrets.REPO_NAME }}
+          token: ${{ secrets.REPO_TOKEN }}
           ref: main
 
-      - uses: actions/setup-python@v5
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      - run: python ci.py 11 eod
+      - name: Prepare EOD
         env:
-          CTX: $ toJSON(secrets) 
-          VARS: $ toJSON(vars) 
+          CTX: ${{ toJSON(secrets) }}
+          VARS: ${{ toJSON(vars) }}
+        run: python ci.py 11 eod
 
   build:
     needs: prepare
@@ -42,20 +45,23 @@ jobs:
         shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
-          repository: $ secrets.REPO_NAME 
-          token: $ secrets.REPO_TOKEN 
+          repository: ${{ secrets.REPO_NAME }}
+          token: ${{ secrets.REPO_TOKEN }}
           ref: main
 
-      - uses: actions/setup-python@v5
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      - run: python ci.py 2 $ matrix.shard 
+      - name: Build shard ${{ matrix.shard }}
         env:
-          CTX: $ toJSON(secrets) 
-          VARS: $ toJSON(vars) 
+          CTX: ${{ toJSON(secrets) }}
+          VARS: ${{ toJSON(vars) }}
+        run: python ci.py 2 ${{ matrix.shard }}
 
   reduce:
     needs: build
@@ -63,17 +69,20 @@ jobs:
     timeout-minutes: 120
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
-          repository: $ secrets.REPO_NAME 
-          token: $ secrets.REPO_TOKEN 
+          repository: ${{ secrets.REPO_NAME }}
+          token: ${{ secrets.REPO_TOKEN }}
           ref: main
 
-      - uses: actions/setup-python@v5
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      - run: python ci.py 16
+      - name: Reduce results
         env:
-          CTX: $ toJSON(secrets) 
-          VARS: $ toJSON(vars) 
+          CTX: ${{ toJSON(secrets) }}
+          VARS: ${{ toJSON(vars) }}
+        run: python ci.py 16
