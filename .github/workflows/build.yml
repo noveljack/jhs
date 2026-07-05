@@ -29,8 +29,6 @@ jobs:
         with:
           node-version: "20"
 
-      - run: pip install -r requirements.txt
-
       - run: python ci.py 12
         env:
           CTX: $ toJSON(secrets) 
