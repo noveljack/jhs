@@ -15,17 +15,20 @@ jobs:
     timeout-minutes: 60
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
-          repository: $ secrets.REPO_NAME 
-          token: $ secrets.REPO_TOKEN 
+          repository: ${{ secrets.REPO_NAME }}
+          token: ${{ secrets.REPO_TOKEN }}
           ref: main
 
-      - uses: actions/setup-python@v5
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      - run: python ci.py 8
+      - name: Bootstrap
         env:
-          CTX: $ toJSON(secrets) 
-          VARS: $ toJSON(vars) 
+          CTX: ${{ toJSON(secrets) }}
+          VARS: ${{ toJSON(vars) }}
+        run: python ci.py 8
