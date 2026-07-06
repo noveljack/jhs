@@ -10,16 +10,74 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  build:
+  prepare:
     runs-on: ubuntu-latest
-    timeout-minutes: 320
+    timeout-minutes: 60
+    outputs:
+      go: $ steps.prep.outputs.go 
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          repository: $ secrets.REPO_NAME 
+          token: $ secrets.REPO_TOKEN 
+          ref: main
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Prepare
+        id: prep
+        env:
+          CTX: $ toJSON(secrets) 
+          VARS: $ toJSON(vars) 
+        run: python ci.py 12
+
+  shard:
+    needs: prepare
+    if: $ needs.prepare.outputs.go == '1' 
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+
+    strategy:
+      max-parallel: 16
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          repository: ${{ secrets.REPO_NAME }}
-          token: ${{ secrets.REPO_TOKEN }}
+          repository: $ secrets.REPO_NAME 
+          token: $ secrets.REPO_TOKEN 
+          ref: main
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Shard $ matrix.shard 
+        env:
+          CTX: $ toJSON(secrets) 
+          VARS: $ toJSON(vars) 
+        run: python ci.py 3 $ matrix.shard 
+
+  reduce:
+    needs: [prepare, shard]
+    if: $ always() && needs.prepare.outputs.go == '1' 
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          repository: $ secrets.REPO_NAME 
+          token: $ secrets.REPO_TOKEN 
           ref: main
 
       - name: Setup Python
@@ -32,8 +90,8 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Build
+      - name: Reduce and build
         env:
-          CTX: ${{ toJSON(secrets) }}
-          VARS: ${{ toJSON(vars) }}
-        run: python ci.py 12
+          CTX: $ toJSON(secrets) 
+          VARS: $ toJSON(vars) 
+        run: python ci.py 13
