@@ -13,14 +13,16 @@ jobs:
   prepare:
     runs-on: ubuntu-latest
     timeout-minutes: 60
+
     outputs:
-      go: $ steps.prep.outputs.go 
+      go: ${{ steps.prep.outputs.go }}
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          repository: $ secrets.REPO_NAME 
-          token: $ secrets.REPO_TOKEN 
+          repository: ${{ secrets.REPO_NAME }}
+          token: ${{ secrets.REPO_TOKEN }}
           ref: main
 
       - name: Setup Python
@@ -31,13 +33,13 @@ jobs:
       - name: Prepare
         id: prep
         env:
-          CTX: $ toJSON(secrets) 
-          VARS: $ toJSON(vars) 
+          CTX: ${{ toJSON(secrets) }}
+          VARS: ${{ toJSON(vars) }}
         run: python ci.py 12
 
   shard:
     needs: prepare
-    if: $ needs.prepare.outputs.go == '1' 
+    if: ${{ needs.prepare.outputs.go == '1' }}
     runs-on: ubuntu-latest
     timeout-minutes: 300
 
@@ -51,8 +53,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          repository: $ secrets.REPO_NAME 
-          token: $ secrets.REPO_TOKEN 
+          repository: ${{ secrets.REPO_NAME }}
+          token: ${{ secrets.REPO_TOKEN }}
           ref: main
 
       - name: Setup Python
@@ -60,15 +62,15 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Shard $ matrix.shard 
+      - name: Shard ${{ matrix.shard }}
         env:
-          CTX: $ toJSON(secrets) 
-          VARS: $ toJSON(vars) 
-        run: python ci.py 3 $ matrix.shard 
+          CTX: ${{ toJSON(secrets) }}
+          VARS: ${{ toJSON(vars) }}
+        run: python ci.py 3 ${{ matrix.shard }}
 
   reduce:
     needs: [prepare, shard]
-    if: $ always() && needs.prepare.outputs.go == '1' 
+    if: ${{ always() && needs.prepare.outputs.go == '1' }}
     runs-on: ubuntu-latest
     timeout-minutes: 300
 
@@ -76,8 +78,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          repository: $ secrets.REPO_NAME 
-          token: $ secrets.REPO_TOKEN 
+          repository: ${{ secrets.REPO_NAME }}
+          token: ${{ secrets.REPO_TOKEN }}
           ref: main
 
       - name: Setup Python
@@ -92,6 +94,6 @@ jobs:
 
       - name: Reduce and build
         env:
-          CTX: $ toJSON(secrets) 
-          VARS: $ toJSON(vars) 
+          CTX: ${{ toJSON(secrets) }}
+          VARS: ${{ toJSON(vars) }}
         run: python ci.py 13
